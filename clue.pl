@@ -14,7 +14,7 @@ init :-
 	initSuspects,
 	initWeapons,
 
-	printsetup
+	printNotebook
 .
 
 initRooms :-
@@ -76,11 +76,13 @@ start :-
 	removeDealt
 .
 
-printsetup:-
- writeln('Rooms:'),
- forall(room(R), writeln(R)),
- writeln('Weapons:'),
- forall(weapon(W), writeln(W))
+printNotebook:-
+ writeln('Remaining Suspects:'),
+ forall(suspect(S), writeln(S)),
+ writeln('Remaining Weapons:'),
+ forall(weapon(W), writeln(W)),
+ writeln('Remaining Rooms:'),
+ forall(room(R), writeln(R))
  .
 
 /* Utility */
