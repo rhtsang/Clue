@@ -12,16 +12,22 @@ init :-
 
 	initRooms,
 	initSuspects,
-	initWeapons
+	initWeapons,
+
+	printsetup
 .
 
 initRooms :-
+	initRoomsHelper(6)
+.
+
+initRoomsHelper(X):-
 	nl,
-	writeln('Enter a ROOM that is in play this round (don\'t forget a period after), or type \'done\' to continue'),
-	read(Room),
-	( Room \= done ->
+	writeln('Enter a ROOM that is in play this round (don\'t forget a period after)'),
+	( X > 0 ->
+		read(Room),
 		assert(room(Room)),
-		initRooms
+		initRoomsHelper(X-1)
 	; nl, writeln('Let\'s continue!')
 	)
 .
@@ -36,12 +42,17 @@ initSuspects :-
 .
 
 initWeapons :-
+	initWeaponsHelper(6)
+.
+
+initWeaponsHelper(X) :-
 	nl,
-	writeln('Enter a WEAPON that is in play this round (don\'t forget a period after), or type \'done\' to continue'),
-	read(Weapon),
-	( Weapon \= done ->
+	writeln('Enter a WEAPON that is in play this round (don\'t forget a period after)'),
+
+	( X > 0 ->
+		read(Weapon),
 		assert(weapon(Weapon)),
-		initWeapons
+		initWeaponsHelper(X-1)
 	; nl, writeln('Let\'s continue!')
 	)
 .
@@ -64,6 +75,13 @@ start :-
 	init,
 	removeDealt
 .
+
+printsetup:-
+ writeln('Rooms:'),
+ forall(room(R), writeln(R)),
+ writeln('Weapons:'),
+ forall(weapon(W), writeln(W))
+ .
 
 /* Utility */
 :- dynamic room/1.
