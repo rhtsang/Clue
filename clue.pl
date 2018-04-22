@@ -18,7 +18,7 @@ init :-
 .
 
 initRooms :-
-	initRoomsHelper(6)
+	initRoomsHelper(2)
 .
 
 initRoomsHelper(X):-
@@ -42,7 +42,7 @@ initSuspects :-
 .
 
 initWeapons :-
-	initWeaponsHelper(6)
+	initWeaponsHelper(2)
 .
 
 initWeaponsHelper(X) :-
@@ -71,18 +71,49 @@ removeDealt :-
 	)
 .
 
+play :-
+	nl,
+	write('Suspect: '),
+	read(SuspectCard),
+	write('Weapon: '),
+	read(WeaponCard),
+	write('Room: '),
+	read(RoomCard),
+	write('You were shown: '),
+	read(Card),
+	( Card \= done ->
+	    ( room(Card) -> retract(room(Card))
+	    ; suspect(Card) -> retract(suspect(Card))
+	    ; weapon(Card) -> retract(weapon(Card))
+	    ; nl, writeln('That doesn\'t seem to be a valid entry. Try again.')
+	    )
+	; writeln('Let\'s continue!')
+	),
+	printNotebook
+.
+
+solved :-
+	findall(S, suspect(S), Slist),
+	length(Slist, 1),
+	findall(W, weapon(W), Wlist),
+	length(Wlist, 1),
+	findall(R, room(R), Rlist),
+	length(Rlist, 1)
+.
+
+
 start :-
 	init,
 	removeDealt
 .
 
 printNotebook:-
- writeln('Remaining Suspects:'),
- forall(suspect(S), writeln(S)),
- writeln('Remaining Weapons:'),
- forall(weapon(W), writeln(W)),
- writeln('Remaining Rooms:'),
- forall(room(R), writeln(R))
+	writeln('Remaining Suspects:'),
+	forall(suspect(S), writeln(S)),
+	writeln('Remaining Weapons:'),
+	forall(weapon(W), writeln(W)),
+	writeln('Remaining Rooms:'),
+	forall(room(R), writeln(R))
  .
 
 /* Utility */
