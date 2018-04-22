@@ -46,10 +46,6 @@ initWeapons :-
 	)
 .
 
-play :-
-	removeDealt
-.
-
 removeDealt :-
 	nl,
 	writeln('Enter a card you have been dealt (don\'t forget a period after) so that I know that it wasn\'nt involved in the crime! Or type \'done\' to continue.'),
@@ -66,7 +62,7 @@ removeDealt :-
 
 start :-
 	init,
-	play
+	removeDealt
 .
 
 /* Utility */
