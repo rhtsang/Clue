@@ -25,7 +25,7 @@ init :-
 	initSuspects,
 	initWeapons,
 	initPlayers,
-	makeplayer(answer)
+	makeplayer(envelope)
 .
 
 initSuspects :-
@@ -105,7 +105,7 @@ removeYourHand :-
 	writeln('Enter a card you have been dealt (don\'t forget a period after) so that I know that it wasn\'t involved in the crime! Or type \'done\' to continue.'),
 	read(Card),
 	( Card \= done ->
-	   forall(holds(player(P), Card), retract(holds(player(P), Card))),
+	   forall(holds(P, Card), retract(holds(P, Card))),
 		 removeYourHand
 	; writeln('Let\'s continue!!')
 	)
@@ -147,14 +147,14 @@ suggest_help(Suspect, Weapon, Room):-
 .*/
 
 revealed(Opponent, Card):-
-	forall((holds(player(P), Card), P \= Opponent), retract(holds(player(P), Card)))
+	forall((holds(P, Card), P \= Opponent), retract(holds(P, Card)))
 	% do advanced stuff here to deal with Opponent revealing a card
 .
 
 does_not_have(Opponent, Suspect, Weapon, Room):-
-	retract(holds(player(Opponent), Suspect)),
-	retract(holds(player(Opponent), Weapon)),
-	retract(holds(player(Opponent), Room))
+	retract(holds(Opponent, Suspect)),
+	retract(holds(Opponent, Weapon)),
+	retract(holds(Opponent, Room))
 .
 
 solved :-
@@ -171,31 +171,31 @@ notebook:-
 	writeln('Remaining Suspects:'),
 	forall(suspect(S),
 						(write('-'), write(S), write(' | maybe held by: '),
-							forall((holds(player(P),S)), (write(P), write(' '))), nl)
+							forall((holds(P,S)), (write(P), write(' '))), nl)
 				), nl,
 	writeln(' Remaining Weapons:'),
 	forall(weapon(W),
 						(write('-'), write(W), write(' | maybe held by: '),
-							forall((holds(player(P),W)), (write(P), write(' '))), nl)
+							forall((holds(P,W)), (write(P), write(' '))), nl)
 				), nl,
 	writeln(' Remaining Rooms:'),
 	forall(room(R),
 						(write('-'), write(R), write(' | maybe held by: '),
-							forall((holds(player(P),R)), (write(P), write(' '))), nl)
+							forall((holds(P,R)), (write(P), write(' '))), nl)
 				), nl
  .
 
 makeplayer(Name):-
  	assert(player(Name)),
- 	forall(suspect(S), 	assert(holds(player(Name), S))),
-	forall(weapon(W), 	assert(holds(player(Name), W))),
-	forall(room(R), 		assert(holds(player(Name), R))),
+ 	forall(suspect(S), 	assert(holds(Name, S))),
+	forall(weapon(W), 	assert(holds(Name, W))),
+	forall(room(R), 		assert(holds(Name, R))),
 	nl
 .
 
 printplayers(X):-
 	write(X), write(' may hold: '), nl,
-	forall((holds(player(X),S), suspect(S)), writeln(S)), nl
+	forall((holds(X,S), suspect(S)), writeln(S)), nl
 .
 
 
