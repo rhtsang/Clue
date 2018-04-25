@@ -19,6 +19,7 @@ init :-
 	retractall(suspect(_)),
 	retractall(weapon(_)),
 	retractall(player(_)),
+	retractall(mayhold(_,_)),
 	retractall(holds(_,_)),
 
 	initRooms,
@@ -99,13 +100,12 @@ removeDealt :-
 	)
 .
 
-% change all HOLDS to MAYHOLD
 removeYourHand :-
 	nl,
 	writeln('Enter a card you have been dealt (don\'t forget a period after) so that I know that it wasn\'t involved in the crime! Or type \'done\' to continue.'),
 	read(Card),
 	( Card \= done ->
-	   forall(holds(P, Card), retract(holds(P, Card))),
+	   forall(mayhold(P, Card), retract(mayhold(P, Card))),
 		 removeYourHand
 	; writeln('Let\'s continue!!')
 	)
@@ -128,17 +128,20 @@ if correct input
 then prompt for revealed card
 else retry
 */
+
 suggest_help(Suspect, Weapon, Room):-
 	(	(suspect(Suspect), weapon(Weapon), room(Room)) ->
-		(write('Enter revealed card: '),
-		read(Card),
-			(	(Card==Suspect; Card==Weapon; Card==Room; Card==none) ->
-				(record_guess(Suspect, Weapon, Room, Card))
-				;(writeln('invalid revealed card'),
-				suggest_help(Suspect, Weapon, Room)))
-		)
+			write('Enter revealed card, or \'none\' if none of your suggested cards were shown: '),
+			read(Card),
+			(	Card==none -> writeln('Let\'s continue')
+			;	(Card==Suspect; Card==Weapon; Card==Room) ->
+					(record_guess(Suspect, Weapon, Room))
+			; writeln('invalid revealed card'),
+			  suggest_help(Suspect, Weapon, Room)
+			)
+		
 		;writeln('invalid suggestion. try again'),
-		suggest
+		 suggest
 	)
 .
 
@@ -147,14 +150,14 @@ suggest_help(Suspect, Weapon, Room):-
 .*/
 
 revealed(Opponent, Card):-
-	forall((holds(P, Card), P \= Opponent), retract(holds(P, Card)))
+	forall((mayhold(P, Card), P \= Opponent), retract(mayhold(P, Card)))
 	% do advanced stuff here to deal with Opponent revealing a card
 .
 
 does_not_have(Opponent, Suspect, Weapon, Room):-
-	retract(holds(Opponent, Suspect)),
-	retract(holds(Opponent, Weapon)),
-	retract(holds(Opponent, Room))
+	retract(mayhold(Opponent, Suspect)),
+	retract(mayhold(Opponent, Weapon)),
+	retract(mayhold(Opponent, Room))
 .
 
 solved :-
@@ -171,31 +174,31 @@ notebook:-
 	writeln('Remaining Suspects:'),
 	forall(suspect(S),
 						(write('-'), write(S), write(' | maybe held by: '),
-							forall((holds(P,S)), (write(P), write(' '))), nl)
+							forall((mayhold(P,S)), (write(P), write(' '))), nl)
 				), nl,
 	writeln(' Remaining Weapons:'),
 	forall(weapon(W),
 						(write('-'), write(W), write(' | maybe held by: '),
-							forall((holds(P,W)), (write(P), write(' '))), nl)
+							forall((mayhold(P,W)), (write(P), write(' '))), nl)
 				), nl,
 	writeln(' Remaining Rooms:'),
 	forall(room(R),
 						(write('-'), write(R), write(' | maybe held by: '),
-							forall((holds(P,R)), (write(P), write(' '))), nl)
+							forall((mayhold(P,R)), (write(P), write(' '))), nl)
 				), nl
  .
 
 makeplayer(Name):-
  	assert(player(Name)),
- 	forall(suspect(S), 	assert(holds(Name, S))),
-	forall(weapon(W), 	assert(holds(Name, W))),
-	forall(room(R), 		assert(holds(Name, R))),
+ 	forall(suspect(S), 	assert(mayhold(Name, S))),
+	forall(weapon(W), 	assert(mayhold(Name, W))),
+	forall(room(R), 		assert(mayhold(Name, R))),
 	nl
 .
 
 printplayers(X):-
 	write(X), write(' may hold: '), nl,
-	forall((holds(X,S), suspect(S)), writeln(S)), nl
+	forall((mayhold(X,S), suspect(S)), writeln(S)), nl
 .
 
 
