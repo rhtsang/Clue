@@ -1,5 +1,6 @@
 /* Gameplay */
 
+/* Initialization */
 init :-
 	nl,
 	writeln('Welcome to your Clue Player Assistant!'),
@@ -9,6 +10,7 @@ init :-
 	retractall(room(_)),
 	retractall(suspect(_)),
 	retractall(weapon(_)),
+	retractall(holds(_,_)),
 
 	initRooms,
 	initSuspects,
@@ -17,32 +19,20 @@ init :-
 	printNotebook
 .
 
-initRooms :-
-	initRoomsHelper(2)
-.
-
-initRoomsHelper(X):-
-	nl,
-	writeln('Enter a ROOM that is in play this round (don\'t forget a period after)'),
-	( X > 0 ->
-		read(Room),
-		assert(room(Room)),
-		initRoomsHelper(X-1)
-	; nl, writeln('Let\'s continue!')
-	)
-.
-
 initSuspects :-
 	assert(suspect(mustard)),
 	assert(suspect(scarlet)),
-	assert(suspect(plum)),
-	assert(suspect(green)),
-	assert(suspect(white)),
+	% assert(suspect(plum)),
+	% assert(suspect(green)),
+	% assert(suspect(white)),
 	assert(suspect(peacock))
 .
 
 initWeapons :-
-	initWeaponsHelper(2)
+	% initWeaponsHelper(2)
+	assert(weapon(knife)),
+	assert(weapon(rope)),
+	assert(weapon(gun))
 .
 
 initWeaponsHelper(X) :-
@@ -53,6 +43,24 @@ initWeaponsHelper(X) :-
 		read(Weapon),
 		assert(weapon(Weapon)),
 		initWeaponsHelper(X-1)
+	; nl, writeln('Let\'s continue!')
+	)
+.
+
+initRooms :-
+	% initRoomsHelper(2)
+	assert(room(bath)),
+	assert(room(bed)),
+	assert(room(lib))
+.
+
+initRoomsHelper(X):-
+	nl,
+	writeln('Enter a ROOM that is in play this round (don\'t forget a period after)'),
+	( X > 0 ->
+		read(Room),
+		assert(room(Room)),
+		initRoomsHelper(X-1)
 	; nl, writeln('Let\'s continue!')
 	)
 .
@@ -115,6 +123,17 @@ printNotebook:-
 	writeln('Remaining Rooms:'),
 	forall(room(R), writeln(R))
  .
+
+ makeplayer:-
+ 	forall(suspect(S), assert(holds(pavel, S)))
+.
+
+printplayers(X):-
+	write(X), write(' holds: '), nl,
+	forall(holds(X,S), writeln(S)), nl
+.
+
+
 
 /* Utility */
 :- dynamic room/1.
