@@ -2,8 +2,8 @@
 
 start :-
 	init,
-	makeplayer(answer),
-	initPlayers,
+	% makeplayer(answer), /* "answer" player implies possible solution */
+	% initPlayers, /* move initPlayers to init?  */
 	removeYourHand
 .
 
@@ -23,7 +23,9 @@ init :-
 
 	initRooms,
 	initSuspects,
-	initWeapons
+	initWeapons,
+	initPlayers,
+	makeplayer(answer)
 .
 
 initSuspects :-
@@ -85,7 +87,7 @@ initPlayers:-
 /* */
 removeDealt :-
 	nl,
-	writeln('Enter a card you have been dealt (don\'t forget a period after) so that I know that it wasn\'nt involved in the crime! Or type \'done\' to continue.'),
+	writeln('Enter a card you have been dealt (don\'t forget a period after) so that I know that it wasn\'t involved in the crime! Or type \'done\' to continue.'),
 	read(Card),
 	( Card \= done ->
 	    ( room(Card) -> retract(room(Card)), removeDealt
@@ -97,13 +99,15 @@ removeDealt :-
 	)
 .
 
+% change all HOLDS to MAYHOLD
 removeYourHand :-
 	nl,
-	writeln('Enter a card you have been dealt (don\'t forget a period after) so that I know that it wasn\'nt involved in the crime! Or type \'done\' to continue.'),
+	writeln('Enter a card you have been dealt (don\'t forget a period after) so that I know that it wasn\'t involved in the crime! Or type \'done\' to continue.'),
 	read(Card),
 	( Card \= done ->
-	   forall(holds(player(P), Card), retract(holds(player(P), Card)))
-	; writeln('blah blah!')
+	   forall(holds(player(P), Card), retract(holds(player(P), Card))),
+		 removeYourHand
+	; writeln('Let\'s continue!!')
 	)
 .
 
@@ -138,12 +142,13 @@ suggest_help(Suspect, Weapon, Room):-
 	)
 .
 
-record_guess(Suspect, Weapon, Room, Card):-
+/*record_guess(Suspect, Weapon, Room, Card):-
 	writeln('i stopped coding here')
-.
+.*/
 
 revealed(Opponent, Card):-
 	forall((holds(player(P), Card), P \= Opponent), retract(holds(player(P), Card)))
+	% do advanced stuff here to deal with Opponent revealing a card
 .
 
 does_not_have(Opponent, Suspect, Weapon, Room):-
@@ -161,7 +166,7 @@ solved :-
 	length(Rlist, 1)
 .
 
-
+/* print database on demand  */
 notebook:-
 	writeln('Remaining Suspects:'),
 	forall(suspect(S),
