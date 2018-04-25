@@ -129,13 +129,21 @@ then prompt for revealed card
 else retry
 */
 
+% do input validation
 suggest_help(Suspect, Weapon, Room):-
 	(	(suspect(Suspect), weapon(Weapon), room(Room)) ->
-			write('Enter revealed card, or \'none\' if none of your suggested cards were shown: '),
+			writeln('Enter revealed card, or \'none\' if none of your suggested cards were shown: '),
 			read(Card),
-			(	Card==none -> writeln('Let\'s continue')
-			;	(Card==Suspect; Card==Weapon; Card==Room) ->
-					(record_guess(Suspect, Weapon, Room))
+			(	Card==none -> 
+				% do some retract stuff here; no one show -> must be in envelope
+				writeln('Let\'s continue')
+			;	(suspect(Card); weapon(Card); room(Card)) ->
+				writeln('Who revealed this card?'),
+				read(Opponent),
+				player(Opponent),
+				%record_guess(Opponent,Card)
+				assert(holds(Opponent,Card)),
+				retractall(mayhold(_,Card))
 			; writeln('invalid revealed card'),
 			  suggest_help(Suspect, Weapon, Room)
 			)
