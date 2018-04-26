@@ -194,14 +194,21 @@ notebook:-
 						(write('-'), write(R), write(' | maybe held by: '),
 							forall((mayhold(P,R)), (write(P), write(' '))), nl)
 				), nl,
-	writeln('Cards in opponents\' hands'),
 	printOppHands
 .
 
 printOppHands :-
+	writeln('Opponents\' hands'),
 	forall((player(P), P \= envelope),
 				 (write(P), write(' holds '), forall(holds(P,C), (write(C), write(' '))), nl)
 				)
+.
+
+giveSuggestion :-
+	suspect(S), mayhold(_,S),
+	weapon(W), mayhold(_,W),
+	room(R), mayhold(_,R),
+	!, write('Maybe '), write(S), write(' did it with a '), write(W), write(' in the '), write(R)
 .
 
 makeplayer(Name):-
