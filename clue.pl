@@ -4,7 +4,8 @@ start :-
 	init,
 	% makeplayer(answer), /* "answer" player implies possible solution */
 	% initPlayers, /* move initPlayers to init?  */
-	removeYourHand
+	removeYourHand,
+	whoseTurn
 .
 
 /* Initialization */
@@ -113,6 +114,7 @@ removeYourHand :-
 
 
 suggest:-
+	writeln('What suggestion did you make?'),
 	nl,
 	write('Enter Suspect: '),
 	read(SuspectCard),
@@ -135,7 +137,7 @@ suggest_help(Suspect, Weapon, Room):-
 			writeln('Enter revealed card, or \'none\' if none of your suggested cards were shown: '),
 			read(Card),
 			(	Card==none -> 
-				% do some retract stuff here; no one show -> must be in envelope
+				% no one show -> must be in envelope -> can accuse here
 				writeln('Let\'s continue')
 			;	(suspect(Card); weapon(Card); room(Card)) ->
 				writeln('Who revealed this card?'),
@@ -169,11 +171,11 @@ does_not_have(Opponent, Suspect, Weapon, Room):-
 .
 
 solved :-
-	findall(S, suspect(S), Slist),
+	findall(S, (suspect(S),mayhold(_,S)), Slist),
 	length(Slist, 1),
-	findall(W, weapon(W), Wlist),
+	findall(W, (weapon(W),mayhold(_,W)), Wlist),
 	length(Wlist, 1),
-	findall(R, room(R), Rlist),
+	findall(R, (room(R),mayhold(_,R)), Rlist),
 	length(Rlist, 1)
 .
 
@@ -208,7 +210,8 @@ giveSuggestion :-
 	suspect(S), mayhold(_,S),
 	weapon(W), mayhold(_,W),
 	room(R), mayhold(_,R),
-	!, write('Maybe '), write(S), write(' did it with a '), write(W), write(' in the '), write(R)
+	!, write('Maybe '), write(S), write(' did it with a '), write(W), write(' in the '), write(R),
+	suggest
 .
 
 makeplayer(Name):-
@@ -224,7 +227,40 @@ printplayers(X):-
 	forall((mayhold(X,S), suspect(S)), writeln(S)), nl
 .
 
+whoseTurn :-
+	writeln('Whose turn is it? Type \'mine\' or the player\'s name'),
+	read(P),
+	( P == mine ->
+		myTurn
+	; player(P) ->
+		oppTurn
+	; writeln('Invalid input, let\'s try again.'),
+		whoseTurn
+	)
+.
 
+myTurn :-
+	( solved -> 
+		writeln('make accusation')
+		% TODO
+	; writeln('Would you like me to give a possible suggestion, or will you make one of your own? Type \'give\' or \'make\'. Or type \'notes\' to show the notebook'),
+		read(Suggest),
+		( Suggest == notes ->
+			notebook
+		;	Suggest == give ->
+			giveSuggestion
+		; Suggest == make ->
+			suggest
+		; writeln('Invalid input, let\'s try again'),
+			myTurn
+		)
+	),
+	whoseTurn
+.
+
+/*oppTurn :-
+
+.*/
 
 /* Utility */
 :- dynamic room/1.
