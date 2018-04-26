@@ -193,8 +193,16 @@ notebook:-
 	forall(room(R),
 						(write('-'), write(R), write(' | maybe held by: '),
 							forall((mayhold(P,R)), (write(P), write(' '))), nl)
-				), nl
- .
+				), nl,
+	writeln('Cards in opponents\' hands'),
+	printOppHands
+.
+
+printOppHands :-
+	forall((player(P), P \= envelope),
+				 (write(P), write(' holds '), forall(holds(P,C), (write(C), write(' '))), nl)
+				)
+.
 
 makeplayer(Name):-
  	assert(player(Name)),
