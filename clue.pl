@@ -4,8 +4,8 @@ start :-
 	init,
 	% makeplayer(answer), /* "answer" player implies possible solution */
 	% initPlayers, /* move initPlayers to init?  */
-	removeYourHand,
-	whoseTurn
+	removeYourHand
+	% whoseTurn
 .
 
 /* Initialization */
@@ -171,11 +171,11 @@ does_not_have(Opponent, Suspect, Weapon, Room):-
 .
 
 solved :-
-	findall(S, (suspect(S),mayhold(_,S)), Slist),
+	findall(S, (suspect(S),mayhold(envelope,S)), Slist),
 	length(Slist, 1),
-	findall(W, (weapon(W),mayhold(_,W)), Wlist),
+	findall(W, (weapon(W),mayhold(envelope,W)), Wlist),
 	length(Wlist, 1),
-	findall(R, (room(R),mayhold(_,R)), Rlist),
+	findall(R, (room(R),mayhold(envelope,R)), Rlist),
 	length(Rlist, 1)
 .
 
@@ -258,9 +258,29 @@ myTurn :-
 	whoseTurn
 .
 
-/*oppTurn :-
-
-.*/
+oppTurn :-
+	writeln('What cards did this player suggest?'),
+	( write('Enter suspect: '), read(S), suspect(S),
+	  write('Enter weapon: '), read(W), weapon(W),
+	  write('Enter room: '), read(R), room(R),
+	  write('Was a card shown this turn? Enter \'yes\' or \'no\''), read(Input),
+	  ( Input == yes ->
+	    write('Who showed this card?'), read(Opponent),
+			retract(mayhold(Opponent,S)),
+			asserta(mayhold(Opponent,S)),
+			retract(mayhold(Opponent,W)),
+			asserta(mayhold(Opponent,W)),
+			retract(mayhold(Opponent,R)),
+			asserta(mayhold(Opponent,R))
+	  ; Input == no ->
+			writeln('Oh no, your opponent won. Better luck next time!')
+	  ; write('Invalid input, try again.'),
+	    oppTurn
+	  )
+	; writeln('Invalid input, try again.'),
+	  oppTurn
+	)
+.
 
 /* Utility */
 :- dynamic room/1.
