@@ -254,8 +254,8 @@ myTurn :-
 		; writeln('Invalid input, let\'s try again'),
 			myTurn
 		)
-	),
-	whoseTurn
+	)
+	%whoseTurn
 .
 
 oppTurn :-
