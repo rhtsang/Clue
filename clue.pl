@@ -2,7 +2,7 @@
 
 start :-
 	init,
-	removeYourHand
+	readYourHand
 	% whoseTurn
 .
 
@@ -25,7 +25,7 @@ init :-
 	initSuspects,
 	initWeapons,
 	initPlayers,
-	makeplayer(envelope)
+	makeplayer(envelope) % the goal is to find out what cards are in envelope
 .
 
 initSuspects :-
@@ -37,6 +37,9 @@ initSuspects :-
 	assert(suspect(peacock))
 .
 
+/*
+	Reading Weapons
+*/
 initWeapons :-
 	% initWeaponsHelper(2)
 	assert(weapon(knife)),
@@ -56,6 +59,9 @@ initWeaponsHelper(X) :-
 	)
 .
 
+/*
+	Reading Rooms
+*/
 initRooms :-
 	% initRoomsHelper(2)
 	assert(room(bath)),
@@ -74,6 +80,9 @@ initRoomsHelper(X):-
 	)
 .
 
+/*
+	Reading Player names
+*/
 initPlayers:-
 	nl,
 	writeln('Enter a player name (don\'t forget a period after)! type \'done\' when you added all players.'),
@@ -85,7 +94,7 @@ initPlayers:-
 	)
 .
 
-/* */
+/*  not being used rn */
 removeDealt :-
 	nl,
 	writeln('Enter a card you have been dealt (don\'t forget a period after) so that I know that it wasn\'t involved in the crime! Or type \'done\' to continue.'),
@@ -100,15 +109,39 @@ removeDealt :-
 	)
 .
 
-removeYourHand :-
+
+/*
+	Read the cards in your hand and remove them from notebook
+*/
+readYourHand :-
 	nl,
-	writeln('Enter a card you have been dealt (don\'t forget a period after) so that I know that it wasn\'t involved in the crime! Or type \'done\' to continue.'),
-	read(Card),
-	( Card \= done ->
-	   forall(mayhold(P, Card), retract(mayhold(P, Card))),
-		 removeYourHand
-	; writeln('Let\'s continue!!')
+	writeln('How many cards did you get?'),
+	read(Number),
+	( number(Number) ->  readYourHandx(Number)
+		; readYourHand
 	)
+.
+
+readYourHandx(Number) :-
+	nl,
+	(Number =< 0 ->
+		writeln('Done reading hand.')
+		;writeln('Enter a card you have been dealt (don\'t forget a period after) so that I know that it wasn\'t involved in the crime!'),
+		read(Card),
+		(not(isCardValid(Card)) ->
+			(writeln('There is no such card. Try again'),
+			readYourHandx(Number))
+			;forall(mayhold(P, Card), retract(mayhold(P, Card))),
+			readYourHandx(Number-1)
+		)
+	)
+.
+
+
+isCardValid(Card):-
+	suspect(Card);
+	weapon(Card);
+	room(Card)
 .
 
 
@@ -135,7 +168,7 @@ suggest_help(Suspect, Weapon, Room):-
 	(	(suspect(Suspect), weapon(Weapon), room(Room)) ->
 			writeln('Enter revealed card, or \'none\' if none of your suggested cards were shown: '),
 			read(Card),
-			(	Card==none -> 
+			(	Card==none ->
 				% no one show -> must be in envelope -> can accuse here
 				writeln('Let\'s continue')
 			;	(suspect(Card); weapon(Card); room(Card)) ->
@@ -148,7 +181,7 @@ suggest_help(Suspect, Weapon, Room):-
 			; writeln('invalid revealed card'),
 			  suggest_help(Suspect, Weapon, Room)
 			)
-		
+
 		;writeln('invalid suggestion. try again'),
 		 suggest
 	)
@@ -213,6 +246,9 @@ giveSuggestion :-
 	suggest
 .
 
+/*
+Creates a player and adds all the possible cards of the player
+*/
 makeplayer(Name):-
  	assert(player(Name)),
  	forall(suspect(S), 	assert(mayhold(Name, S))),
@@ -239,7 +275,7 @@ whoseTurn :-
 .
 
 myTurn :-
-	( solved -> 
+	( solved ->
 		writeln('make accusation')
 		% TODO
 	; writeln('Would you like me to give a possible suggestion, or will you make one of your own? Type \'give\' or \'make\'. Or type \'notes\' to show the notebook'),
