@@ -24,7 +24,7 @@ init :-
 	initRooms,
 	initSuspects,
 	initWeapons,
-	initPlayers,
+	howManyPlayers,
 	makeplayer(envelope) % the goal is to find out what cards are in envelope
 .
 
@@ -83,14 +83,24 @@ initRoomsHelper(X):-
 /*
 	Reading Player names
 */
-initPlayers:-
+howManyPlayers:-
 	nl,
-	writeln('Enter a player name (don\'t forget a period after)! type \'done\' when you added all players.'),
-	read(Name),
-	( Name \= done ->
-		(makeplayer(Name)),
-		initPlayers
-	;	writeln('Let\'s continue!')
+	writeln('How many players are there [2-6]?'),
+	read(Number),
+	(number(Number), Number<7, Number>1 ->
+		initPlayers(Number),
+		assert(playercount(Number));
+		writeln('Please type a valid number'),
+		howManyPlayers)
+.
+
+initPlayers(Number):-
+	nl,
+	(Number < 1 -> writeln('Done reading players.')
+		;writeln('Enter player name followed by period'),
+		read(Name),
+		makeplayer(Name),
+		initPlayers(Number-1)
 	)
 .
 
@@ -117,26 +127,22 @@ readYourHand :-
 	nl,
 	writeln('How many cards did you get?'),
 	read(Number),
-	( number(Number) ->  readYourHandx(Number)
-		; readYourHand
-	)
+	(number(Number) ->  readYourHandx(Number); readYourHand)
 .
 
 readYourHandx(Number) :-
 	nl,
-	(Number =< 0 ->
-		writeln('Done reading hand.')
-		;writeln('Enter a card you have been dealt (don\'t forget a period after) so that I know that it wasn\'t involved in the crime!'),
+	(Number =< 0 -> writeln('Done reading hand.')
+		;writeln('Enter a card you have been dealt followed by period'),
 		read(Card),
 		(not(isCardValid(Card)) ->
 			(writeln('There is no such card. Try again'),
-			readYourHandx(Number))
-			;forall(mayhold(P, Card), retract(mayhold(P, Card))),
+			readYourHandx(Number));
+			forall(mayhold(P, Card), retract(mayhold(P, Card))),
 			readYourHandx(Number-1)
 		)
 	)
 .
-
 
 isCardValid(Card):-
 	suspect(Card);
