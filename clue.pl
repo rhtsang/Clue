@@ -2,8 +2,6 @@
 
 start :-
 	init,
-	% makeplayer(answer), /* "answer" player implies possible solution */
-	% initPlayers, /* move initPlayers to init?  */
 	removeYourHand
 	% whoseTurn
 .
@@ -80,9 +78,10 @@ initPlayers:-
 	nl,
 	writeln('Enter a player name (don\'t forget a period after)! type \'done\' when you added all players.'),
 	read(Name),
-	( Name \= done -> (makeplayer(Name)),
-		initPlayers;
-		writeln('Let\'s continue!')
+	( Name \= done ->
+		(makeplayer(Name)),
+		initPlayers
+	;	writeln('Let\'s continue!')
 	)
 .
 
@@ -263,7 +262,7 @@ oppTurn :-
 	( write('Enter suspect: '), read(S), suspect(S),
 	  write('Enter weapon: '), read(W), weapon(W),
 	  write('Enter room: '), read(R), room(R),
-	  write('Was a card shown this turn? Enter \'yes\' or \'no\''), read(Input),
+	  write('Was a card shown this turn? Enter \'yes\' or \'no\' (and don\'t forget the period after!)'), read(Input),
 	  ( Input == yes ->
 	    write('Who showed this card?'), read(Opponent),
 			retract(mayhold(Opponent,S)),
