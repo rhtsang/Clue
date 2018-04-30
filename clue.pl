@@ -28,14 +28,14 @@ Assumptions:
 	9 rooms defined by user.
 	user puts in all the turns correctly (for invalid inputs the user will
 	be prompted to try again).
-	user keeps track of turn.
+	user keeps track of order, the program does not.
 
 General Logic:
 	After initializing the game every opponent and the envelope gets
 	a hypothetical hand using the predicate 'mayhold'. This hypothetical hand is
 	consistant of all possible cards that the opponent could be holding. Based on
 	information gathered from every turn recorded by the user the hypothetical
-	hands of opponents shrink narrowing down possible solutions of the game
+	hands of opponents shrink narrowing down possible solutions of the game.
 
 notebook.
 	This predicate allows the user to see the contents of the database on-demand.
@@ -49,19 +49,16 @@ card. If the list is empty it means the card is in the users hand. If there is
 only only name in the list this means that that users is holding that card.
 
 Example 1:
--scarlet | maybe held by:
-You are holding the scarlet card.
+	-scarlet | maybe held by:
+	You are holding the scarlet card.
 
 Example 2:
--knife | maybe held by: katy
-Katy is holding the knife card
+	-knife | maybe held by: katy
+	Katy is holding the knife card
 
 Example 3:
--bedroom | maybe held by: john bill envelope
-The bedroom card may be in the envelope or in johns or bills hand.
-
-solutions.
-	Prints out the possible cards in the envelope.
+	-bedroom | maybe held by: john bill envelope
+	The bedroom card may be in the envelope or in johns or bills hand.
 
 myTurn.
 	This predicate is used to record information the user gains during his/her
@@ -119,9 +116,10 @@ init :-
 	retractall(holds(_,_)),
 	retractall(playercount(_)),
 
-	initRooms(9),
+	
 	initSuspects,
 	initWeapons(6),
+	initRooms(9),
 	howManyPlayers,
 	makeplayer(envelope) % the goal is to find out what cards are in envelope
 .
@@ -169,8 +167,9 @@ initRooms(X):-
 */
 howManyPlayers:-
 	nl,
-	writeln('How many OTHER players are there [1-5]?'),
+	writeln('How many OPPONENTS are there [1-5]?'),
 	read(Number),
+	writeln('Enter opponents name in any order. Make sure they are unique'),
 	(number(Number), Number<6, Number>0 ->
 		initPlayers(Number),
 		assert(playercount(Number));
@@ -182,7 +181,7 @@ initPlayers(0):- writeln('Done reading players.').
 initPlayers(Number):-
 	nl,
 	Number > 0,
-	writeln('Enter player name followed by period'),
+	writeln('Enter an OPPONENTS name followed by period (that you have not added yet)'),
 	read(Name),
 	makeplayer(Name),
 	X is Number-1,
@@ -266,26 +265,36 @@ suggestRoom(Suspect, Weapon):-
 	nl,
 	write('Enter Room: '),
 	read(Room),
-	(room(Room) -> (playercount(X), suggestResponsePlayer(Suspect, Weapon, Room, X));
-		(writeln('No such room. Try again'),
-		suggestRoom(Suspect, Weapon)))
+	(room(Room) -> (playercount(X), 
+			forall((player(P), P \= envelope), assert(next(P))),
+			suggestResponsePlayer(Suspect, Weapon, Room, X)
+			);
+			(writeln('No such room. Try again'),
+			suggestRoom(Suspect, Weapon))
+	)
 .
 
-suggestResponsePlayer(_, _, _, 0) :- writeln('Collected all responses').
+suggestResponsePlayer(S, W, R, 0) :- 
+	writeln('All players had nothing to show. You win.'),
+	write(S), write(' killed Mr.Body with a '),
+	write(W), write(' in the '), 
+	write(R), write('!')
+.
+	
 suggestResponsePlayer(Suspect, Weapon, Room, CountPlayers):-
 	nl,
 	CountPlayers > 0,
-	write('Players:'),
-	forall((player(P), P \= envelope), (write(P), write('. '))),
+	write('Remaining Opponents:'),
+	forall((next(P), P \= envelope), (write(P), write('. '))),
 	nl,
 	write('Responding player: '),
 	read(Name),
-	(player(Name) -> suggestResponseCard(Name,Suspect, Weapon, Room);
-		(writeln('no such player. Try again'),
+	(next(Name) -> suggestResponseCard(Name,Suspect, Weapon, Room, CountPlayers);
+		(writeln('That is not one of the remaining opponents. Try again'),
 		suggestResponsePlayer(Suspect, Weapon, Room, CountPlayers)))
 .
 
-suggestResponseCard(Name,Suspect, Weapon, Room):-
+suggestResponseCard(Name,Suspect, Weapon, Room, CountPlayers):-
 	nl,
 	write('Options: [nothing. '),
 	write(Suspect), write('. '),
@@ -293,12 +302,15 @@ suggestResponseCard(Name,Suspect, Weapon, Room):-
 	write(Room), writeln('] '),
 	write('What did '), write(Name), write(' show you?'),
 	read(Ans),
-	( % case: if nothing to reveal
+	( % case: if nothing to reveal record opponent doesnt have cards
 		Ans == nothing ->
 		(nl,write('That means that '),
 		write(Name),
-		write(' does not have any of those cards! Recording in notebook'),
-		does_not_have(Name,Suspect, Weapon, Room)
+		writeln(' does not have any of those cards! Recording in notebook'),
+		does_not_have(Name,Suspect, Weapon, Room),
+		retractall(next(Name)),
+		Y is CountPlayers-1,
+		suggestResponsePlayer(Suspect, Weapon, Room, Y)
 		);
 
 			( % case: else if revealed a card
@@ -311,12 +323,13 @@ suggestResponseCard(Name,Suspect, Weapon, Room):-
 				write(Name),
 				write(' is holding '),
 				writeln(Ans),
-				revealed(Name, Ans)
+				revealed(Name, Ans),
+				retractall(next(_))
 				);
 
 				% case: else invalid input
 				(writeln('invalid card. try again'),
-				suggestResponseCard(Name,Suspect, Weapon, Room))
+				suggestResponseCard(Name,Suspect, Weapon, Room, CountPlayers))
 			)
 	)
 .
