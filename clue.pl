@@ -1,3 +1,12 @@
+/*
+ECS 140B
+Clue Project
+Spring 2018
+Raymond Tsang 912868864
+Pavel Kuzkin 912807074
+*/
+
+
 /* Gameplay */
 
 start :-
