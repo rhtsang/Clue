@@ -6,13 +6,52 @@ Raymond Tsang 912868864
 Pavel Kuzkin 912807074
 */
 
+/*
+Welcome to our Clue Player Assistant!
+
+This project is designed to aid the user in winning his/her game of Clue by 
+keeping track of information gathered throughout the course of the game and
+helping the user make decisions based on this information.
+
+To get started, load the clue.pl file into the Prolog knowledge base. Then type
+'start.' and follow the on-screen prompts to initialize the the assistant with
+the game's information. After this is done, the user can type 'myTurn.' or
+'oppTurn.' to record information gathered and inferred on the user's turn or
+an opponent's turn. The user can also type 'notebook.' to see the current
+state of the game, i.e. which cards have been eliminated from contention.
+(The player 'envelope' indicates that the card could be in the envelope,
+i.e. part of the crime.) 
+
+notebook.
+	This predicate allows the user to see the contents of the database on-demand.
+	For each card in the game, it prints a list of all possible players who could
+	be holding it, including the player him/herself. The player 'envelope'
+	indicates that the card could be in the envelope, i.e. part of the crime.
+
+myTurn.
+	This predicate is used to record information the user gains during his/her
+	turn. It begins by checking if the case is solved (i.e. there is only one
+	possible combination of suspects, weapons, and rooms left). If the case is
+	solved, it tells the user what accusation to make. If not, it can give the
+	user a suggestion to make before prompting the user for what suggestion they
+	made, and if a card was revealed to him/her. After the user enters this
+	information, the assistant updates the database based on the knowledge
+	gathered and inferred.
+
+oppTurn.
+	Similar to myTurn, this predicate is used to record information that is
+	inferred from an opponent's turn, and then updates the database in order
+	to provide better suggestions to give the user.
+
+*/
+
 
 /* Gameplay */
 
+% called by the user to initiliaze the assistant
 start :-
 	init,
-	readYourHand,
-	whoseTurn
+	readYourHand
 .
 
 /* Initialization */
@@ -31,9 +70,9 @@ init :-
 	retractall(holds(_,_)),
 	retractall(playercount(_)),
 
-	initRooms,
+	initRooms(9),
 	initSuspects,
-	initWeapons,
+	initWeapons(6),
 	howManyPlayers,
 	makeplayer(envelope) % the goal is to find out what cards are in envelope
 .
@@ -41,57 +80,43 @@ init :-
 initSuspects :-
 	assert(suspect(mustard)),
 	assert(suspect(scarlet)),
-	% assert(suspect(plum)),
-	% assert(suspect(green)),
-	% assert(suspect(white)),
+	assert(suspect(plum)),
+	assert(suspect(green)),
+	assert(suspect(white)),
 	assert(suspect(peacock))
 .
 
 /*
-	Reading Weapons
+	Reading weapons from user input
 */
-initWeapons :-
-	% initWeaponsHelper(2)
-	assert(weapon(knife)),
-	assert(weapon(rope)),
-	assert(weapon(gun))
-.
-
-initWeaponsHelper(X) :-
+initWeapons(X) :-
 	nl,
 	writeln('Enter a WEAPON that is in play this round (don\'t forget a period after)'),
 
 	( X > 0 ->
 		read(Weapon),
 		assert(weapon(Weapon)),
-		initWeaponsHelper(X-1)
+		initWeapons(X-1)
 	; nl, writeln('Let\'s continue!')
 	)
 .
 
 /*
-	Reading Rooms
+	Reading rooms from user input
 */
-initRooms :-
-	% initRoomsHelper(2)
-	assert(room(bath)),
-	assert(room(bed)),
-	assert(room(lib))
-.
-
-initRoomsHelper(X):-
+initRooms(X):-
 	nl,
 	writeln('Enter a ROOM that is in play this round (don\'t forget a period after)'),
 	( X > 0 ->
 		read(Room),
 		assert(room(Room)),
-		initRoomsHelper(X-1)
+		initRooms(X-1)
 	; nl, writeln('Let\'s continue!')
 	)
 .
 
 /*
-	Reading Player names
+	Reading player names from user input
 */
 howManyPlayers:-
 	nl,
@@ -116,7 +141,8 @@ initPlayers(Number):-
 .
 
 /*
-	Read the cards in your hand and remove them from notebook
+	Read the cards in your hand and remove them from the assistant's database,
+	because they can't be in the envelope (i.e. part of the crime)
 */
 readYourHand :-
 	nl,
@@ -140,6 +166,9 @@ readYourHandx(Number) :-
 	)
 .
 
+/*
+	checks if a card is valid
+*/
 isCardValid(Card):-
 	suspect(Card);
 	weapon(Card);
@@ -193,7 +222,7 @@ suggestRoom(Suspect, Weapon):-
 		suggestRoom(Suspect, Weapon)))
 .
 
-suggestResponsePlayer(Suspect, Weapon, Room, 0):- writeln('Collected all responses').
+suggestResponsePlayer(_, _, _, 0) :- writeln('Collected all responses').
 suggestResponsePlayer(Suspect, Weapon, Room, CountPlayers):-
 	nl,
 	CountPlayers > 0,
@@ -217,7 +246,7 @@ suggestResponseCard(Name,Suspect, Weapon, Room):-
 	read(Ans),
 	( % case: if nothing to reveal
 		Ans == nothing ->
-		(write('That means that '),
+		(nl,write('That means that '),
 		write(Name),
 		write(' does not have any of those cards! Recording in notebook'),
 		does_not_have(Name,Suspect, Weapon, Room)
@@ -338,18 +367,6 @@ printplayers(X):-
 	forall((mayhold(X,S), suspect(S)), writeln(S)), nl
 .
 
-whoseTurn :-
-	writeln('Whose turn is it? Type \'mine\' or the player\'s name'),
-	read(P),
-	( P == mine ->
-		myTurn
-	; player(P) ->
-		oppTurn
-	; writeln('Invalid input, let\'s try again.'),
-		whoseTurn
-	)
-.
-
 myTurn :-
 	(solved ->
 		(writeln('make accusation'),
@@ -360,14 +377,13 @@ myTurn :-
 		( Suggest == notes ->
 			(notebook, myTurn)
 		;	Suggest == hint ->
-			(giveSuggestion, myTurn)
+			giveSuggestion
 		; Suggest == make ->
 			suggest
 		; writeln('Invalid input, let\'s try again'),
 			myTurn
 		)
 	)
-	%whoseTurn
 .
 
 oppTurn :-
@@ -416,7 +432,7 @@ oppTurnNoShow(S, W, R):-
 	)
 .
 
-oppTurnNoShowLoop(S, W, R, 0):- writeln('Done with this opponents turn').
+oppTurnNoShowLoop(_, _, _, 0):- writeln('Done with this opponents turn').
 oppTurnNoShowLoop(S, W, R, X):-
 	nl,
 	write('Name a player that had no cards to show'),
@@ -429,7 +445,7 @@ oppTurnNoShowLoop(S, W, R, X):-
 		write(R), write(' '),
 		write(' from '),
 		write(Name),
-		write('\'s columb'),
+		write('\'s column'),
 		nl
 	;	writeln('no such player, try again!'),
 		oppTurnNoShowLoop(S, W, R, X)
