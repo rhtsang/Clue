@@ -85,40 +85,25 @@ initRoomsHelper(X):-
 */
 howManyPlayers:-
 	nl,
-	writeln('How many players are there [2-6]?'),
+	writeln('How many OTHER players are there [1-5]?'),
 	read(Number),
-	(number(Number), Number<7, Number>1 ->
+	(number(Number), Number<6, Number>0 ->
 		initPlayers(Number),
 		assert(playercount(Number));
 		writeln('Please type a valid number'),
 		howManyPlayers)
 .
 
+initPlayers(0):- writeln('Done reading players.').
 initPlayers(Number):-
 	nl,
-	(Number < 1 -> writeln('Done reading players.')
-		;writeln('Enter player name followed by period'),
-		read(Name),
-		makeplayer(Name),
-		initPlayers(Number-1)
-	)
+	Number > 0,
+	writeln('Enter player name followed by period'),
+	read(Name),
+	makeplayer(Name),
+	X is Number-1,
+	initPlayers(X)
 .
-
-/*  not being used rn */
-removeDealt :-
-	nl,
-	writeln('Enter a card you have been dealt (don\'t forget a period after) so that I know that it wasn\'t involved in the crime! Or type \'done\' to continue.'),
-	read(Card),
-	( Card \= done ->
-	    ( room(Card) -> retract(room(Card)), removeDealt
-	    ; suspect(Card) -> retract(suspect(Card)), removeDealt
-	    ; weapon(Card) -> retract(weapon(Card)), removeDealt
-	    ; nl, writeln('That doesn\'t seem to be a valid entry. Try again.'), removeDealt
-	    )
-	; writeln('Let\'s add players!')
-	)
-.
-
 
 /*
 	Read the cards in your hand and remove them from notebook
@@ -130,17 +115,18 @@ readYourHand :-
 	(number(Number) ->  readYourHandx(Number); readYourHand)
 .
 
+readYourHandx(0) :- writeln('Done reading hand.').
 readYourHandx(Number) :-
 	nl,
-	(Number =< 0 -> writeln('Done reading hand.')
-		;writeln('Enter a card you have been dealt followed by period'),
-		read(Card),
-		(not(isCardValid(Card)) ->
-			(writeln('There is no such card. Try again'),
-			readYourHandx(Number));
-			forall(mayhold(P, Card), retract(mayhold(P, Card))),
-			readYourHandx(Number-1)
-		)
+	Number > 0,
+	writeln('Enter a card you have been dealt followed by period'),
+	read(Card),
+	(isCardValid(Card) ->
+		(forall(mayhold(P, Card), retract(mayhold(P, Card))),
+		X is Number-1,
+		readYourHandx(X));
+		(writeln('There is no such card. Try again'),
+		readYourHandx(Number))
 	)
 .
 
@@ -150,24 +136,101 @@ isCardValid(Card):-
 	room(Card)
 .
 
-
+/*
+each suggest func checks if input is valid and starts the next func.
+Once suspect, weapon and room inputs are recorded suggestResponse records
+response.
+*/
 suggest:-
-	writeln('What suggestion did you make?'),
 	nl,
-	write('Enter Suspect: '),
-	read(SuspectCard),
-	write('Enter Weapon: '),
-	read(WeaponCard),
-	write('Enter Room: '),
-	read(RoomCard),
-	suggest_help(SuspectCard, WeaponCard, RoomCard)
+	writeln('What suggestion are you making?'),
+	suggestSuspect
 .
 
-/*
-if correct input
-then prompt for revealed card
-else retry
-*/
+suggestSuspect:-
+	nl,
+	write('Suspects: '),
+	forall(suspect(S), (write(S), write('. '))),
+	nl,
+	write('Enter Suspect: '),
+	read(Suspect),
+	(suspect(Suspect) -> suggestWeapon(Suspect);
+		(writeln('No such suspect. Try again'),
+		suggestSuspect))
+.
+
+suggestWeapon(Suspect):-
+	nl,
+	write('Weapons: '),
+	forall(weapon(W), (write(W), write('. '))),
+	nl,
+	write('Enter Weapon: '),
+	read(Weapon),
+	(weapon(Weapon) -> suggestRoom(Suspect, Weapon);
+		(writeln('No such weapon. Try again'),
+		suggestWeapon(Suspect)))
+.
+
+suggestRoom(Suspect, Weapon):-
+	nl,
+	write('Rooms: '),
+	forall(room(R), (write(R), write('. '))),
+	nl,
+	write('Enter Room: '),
+	read(Room),
+	(room(Room) -> (playercount(X), suggestResponsePlayer(Suspect, Weapon, Room, X));
+		(writeln('No such room. Try again'),
+		suggestRoom(Suspect, Weapon)))
+.
+
+suggestResponsePlayer(Suspect, Weapon, Room, 0):- writeln('Collected all responses').
+suggestResponsePlayer(Suspect, Weapon, Room, CountPlayers):-
+	nl,
+	CountPlayers > 0,
+	write('Players:'),
+	forall((player(P), P \= envelope), (write(P), write('. '))),
+	nl,
+	write('Responding player: '),
+	read(Name),
+	(player(Name) -> suggestResponseCard(Name,Suspect, Weapon, Room);
+		(writeln('no such player. Try again'),
+		suggestResponsePlayer(Suspect, Weapon, Room, CountPlayers)))
+.
+
+suggestResponseCard(Name,Suspect, Weapon, Room):-
+	nl,
+	write('Options: [nothing. '),
+	write(Suspect), write('. '),
+	write(Weapon), write('. '),
+	write(Room), writeln('] '),
+	write('What did '), write(Name), write(' show you?'),
+	read(Ans),
+	( % case: if nothing to reveal
+	Ans == nothing ->
+		(write('That means that '),
+		write(Name),
+		write(' does not have any of those cards! Recording in notebook'),
+		does_not_have(Name,Suspect, Weapon, Room));
+
+			( % case: else if revealed a card
+			(Ans == Suspect; Ans == Weapon; Ans == Room)->
+				(write('That means that  '),
+				forall((player(P), P \= Name), (write(P), write(' '))),
+				write('are not holding '),
+				writeln(Ans),
+				write('Recording that '),
+				write(Name),
+				write(' is holding '),
+				writeln(Ans),
+				revealed(Name, Ans)
+				);
+
+				% case: else invalid input
+				(writeln('invalid card. try again'),
+				suggestResponseCard(Name,Suspect, Weapon, Room))
+			)
+	)
+.
 
 % do input validation
 suggest_help(Suspect, Weapon, Room):-
@@ -284,11 +347,11 @@ myTurn :-
 	( solved ->
 		writeln('make accusation')
 		% TODO
-	; writeln('Would you like me to give a possible suggestion, or will you make one of your own? Type \'give\' or \'make\'. Or type \'notes\' to show the notebook'),
+	; writeln('Would you like a hint, or will you make a suggestion? Type \'hint\' or \'make\'. Or type \'notes\' to show the notebook'),
 		read(Suggest),
 		( Suggest == notes ->
 			notebook
-		;	Suggest == give ->
+		;	Suggest == hint ->
 			giveSuggestion
 		; Suggest == make ->
 			suggest
