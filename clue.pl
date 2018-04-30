@@ -9,7 +9,7 @@ Pavel Kuzkin 912807074
 /*
 Welcome to our Clue Player Assistant!
 
-This project is designed to aid the user in winning his/her game of Clue by 
+This project is designed to aid the user in winning his/her game of Clue by
 keeping track of information gathered throughout the course of the game and
 helping the user make decisions based on this information.
 
@@ -20,13 +20,48 @@ the game's information. After this is done, the user can type 'myTurn.' or
 an opponent's turn. The user can also type 'notebook.' to see the current
 state of the game, i.e. which cards have been eliminated from contention.
 (The player 'envelope' indicates that the card could be in the envelope,
-i.e. part of the crime.) 
+i.e. part of the crime.)
+
+Assumptions:
+	6 fixed suspects: mustard, scarlet, plum, green, white, and peacock.
+	6 weapons defined by user.
+	9 rooms defined by user.
+	user puts in all the turns correctly (for invalid inputs the user will
+	be prompted to try again).
+	user keeps track of turn.
+
+General Logic:
+	After initializing the game every opponent and the envelope gets
+	a hypothetical hand using the predicate 'mayhold'. This hypothetical hand is
+	consistant of all possible cards that the opponent could be holding. Based on
+	information gathered from every turn recorded by the user the hypothetical
+	hands of opponents shrink narrowing down possible solutions of the game
 
 notebook.
 	This predicate allows the user to see the contents of the database on-demand.
 	For each card in the game, it prints a list of all possible players who could
 	be holding it, including the player him/herself. The player 'envelope'
 	indicates that the card could be in the envelope, i.e. part of the crime.
+
+Interpreting the notebook:
+The list of opponents holding a card are the ONLY possible opponents with that
+card. If the list is empty it means the card is in the users hand. If there is
+only only name in the list this means that that users is holding that card.
+
+Example 1:
+-scarlet | maybe held by:
+You are holding the scarlet card.
+
+Example 2:
+-knife | maybe held by: katy
+Katy is holding the knife card
+
+Example 3:
+-bedroom | maybe held by: john bill envelope
+The bedroom card may be in the envelope or in johns or bills hand.
+
+solutions.
+	Prints out the possible cards in the envelope.
 
 myTurn.
 	This predicate is used to record information the user gains during his/her
@@ -51,7 +86,21 @@ oppTurn.
 % called by the user to initiliaze the assistant
 start :-
 	init,
-	readYourHand
+	readYourHand,
+	instructions
+.
+
+instructions:-
+	nl,
+	writeln('Ready to play!'),
+	writeln('Commands:'),
+	writeln('type \'notebook.\' to view the notebook'),
+	writeln('type \'solutions.\' to view possible cards in the envelope'),
+	writeln('type \'myTurn.\' to record your turn'),
+	writeln('type \'oppTurn.\' to record an opponents turn'),
+	writeln('type \'.\' to stop the turn recording, it will not be saved'),
+	writeln('Good Luck!'),
+	nl
 .
 
 /* Initialization */
