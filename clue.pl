@@ -2,8 +2,8 @@
 
 start :-
 	init,
-	readYourHand
-	% whoseTurn
+	readYourHand,
+	whoseTurn
 .
 
 /* Initialization */
@@ -20,6 +20,7 @@ init :-
 	retractall(player(_)),
 	retractall(mayhold(_,_)),
 	retractall(holds(_,_)),
+	retractall(playercount(_)),
 
 	initRooms,
 	initSuspects,
@@ -137,9 +138,9 @@ isCardValid(Card):-
 .
 
 /*
-each suggest func checks if input is valid and starts the next func.
-Once suspect, weapon and room inputs are recorded suggestResponse records
-response.
+	each suggest func checks if input is valid and starts the next func.
+	Once suspect, weapon and room inputs are recorded suggestResponse records
+	response.
 */
 suggest:-
 	nl,
@@ -206,11 +207,12 @@ suggestResponseCard(Name,Suspect, Weapon, Room):-
 	write('What did '), write(Name), write(' show you?'),
 	read(Ans),
 	( % case: if nothing to reveal
-	Ans == nothing ->
+		Ans == nothing ->
 		(write('That means that '),
 		write(Name),
 		write(' does not have any of those cards! Recording in notebook'),
-		does_not_have(Name,Suspect, Weapon, Room));
+		does_not_have(Name,Suspect, Weapon, Room)
+		);
 
 			( % case: else if revealed a card
 			(Ans == Suspect; Ans == Weapon; Ans == Room)->
@@ -232,50 +234,34 @@ suggestResponseCard(Name,Suspect, Weapon, Room):-
 	)
 .
 
-% do input validation
-suggest_help(Suspect, Weapon, Room):-
-	(	(suspect(Suspect), weapon(Weapon), room(Room)) ->
-			writeln('Enter revealed card, or \'none\' if none of your suggested cards were shown: '),
-			read(Card),
-			(	Card==none ->
-				% no one show -> must be in envelope -> can accuse here
-				writeln('Let\'s continue')
-			;	(suspect(Card); weapon(Card); room(Card)) ->
-				writeln('Who revealed this card?'),
-				read(Opponent),
-				player(Opponent),
-				%record_guess(Opponent,Card)
-				assert(holds(Opponent,Card)),
-				retractall(mayhold(_,Card))
-			; writeln('invalid revealed card'),
-			  suggest_help(Suspect, Weapon, Room)
-			)
-
-		;writeln('invalid suggestion. try again'),
-		 suggest
-	)
-.
-
-/*record_guess(Suspect, Weapon, Room, Card):-
-	writeln('i stopped coding here')
-.*/
-
 revealed(Opponent, Card):-
 	forall((mayhold(P, Card), P \= Opponent), retract(mayhold(P, Card)))
 	% do advanced stuff here to deal with Opponent revealing a card
 .
 
 does_not_have(Opponent, Suspect, Weapon, Room):-
-	retract(mayhold(Opponent, Suspect)),
-	retract(mayhold(Opponent, Weapon)),
-	retract(mayhold(Opponent, Room))
+	retractall(mayhold(Opponent, Suspect)),
+	retractall(mayhold(Opponent, Weapon)),
+	retractall(mayhold(Opponent, Room))
 .
 
 solved :-
+	solvedSuspect,
+	solvedWeapon,
+	solvedRoom
+.
+
+solvedSuspect :-
 	findall(S, (suspect(S),mayhold(envelope,S)), Slist),
-	length(Slist, 1),
+	length(Slist, 1)
+.
+
+solvedWeapon :-
 	findall(W, (weapon(W),mayhold(envelope,W)), Wlist),
-	length(Wlist, 1),
+	length(Wlist, 1)
+.
+
+solvedRoom :-
 	findall(R, (room(R),mayhold(envelope,R)), Rlist),
 	length(Rlist, 1)
 .
@@ -296,9 +282,21 @@ notebook:-
 	forall(room(R),
 						(write('-'), write(R), write(' | maybe held by: '),
 							forall((mayhold(P,R)), (write(P), write(' '))), nl)
-				), nl,
-	printOppHands
+				), nl
 .
+
+solutions:-
+	writeln('Possible cards in envelope.'),
+	write('-Suspects: '),
+	forall((suspect(S), mayhold(envelope, S)), (write(S), write(' '))),
+	nl,
+	write('-Weapons: '),
+	forall((weapon(W), mayhold(envelope, W)), (write(W), write(' '))),
+	nl,
+	write('-Rooms: '),
+	forall((room(R), mayhold(envelope, R)), (write(R), write(' '))),
+	nl
+	.
 
 printOppHands :-
 	writeln('Opponents\' hands'),
@@ -308,9 +306,9 @@ printOppHands :-
 .
 
 giveSuggestion :-
-	suspect(S), mayhold(_,S),
-	weapon(W), mayhold(_,W),
-	room(R), mayhold(_,R),
+	suspect(S), mayhold(envelope,S),
+	weapon(W), mayhold(envelope,W),
+	room(R), mayhold(envelope,R),
 	!, write('Maybe '), write(S), write(' did it with a '), write(W), write(' in the '), write(R),
 	suggest
 .
@@ -344,15 +342,16 @@ whoseTurn :-
 .
 
 myTurn :-
-	( solved ->
-		writeln('make accusation')
-		% TODO
-	; writeln('Would you like a hint, or will you make a suggestion? Type \'hint\' or \'make\'. Or type \'notes\' to show the notebook'),
+	(solved ->
+		(writeln('make accusation'),
+		solutions
+		);
+		writeln('Would you like a hint, or will you make a suggestion? Type \'hint\' or \'make\'. Or type \'notes\' to show the notebook'),
 		read(Suggest),
 		( Suggest == notes ->
-			notebook
+			(notebook, myTurn)
 		;	Suggest == hint ->
-			giveSuggestion
+			(giveSuggestion, myTurn)
 		; Suggest == make ->
 			suggest
 		; writeln('Invalid input, let\'s try again'),
@@ -367,24 +366,70 @@ oppTurn :-
 	( write('Enter suspect: '), read(S), suspect(S),
 	  write('Enter weapon: '), read(W), weapon(W),
 	  write('Enter room: '), read(R), room(R),
-	  write('Was a card shown this turn? Enter \'yes\' or \'no\' (and don\'t forget the period after!)'), read(Input),
+	  write('Was a card shown this turn? Enter \'yes\' or \'no\' (and don\'t forget the period after!)'),
+		read(Input),
 	  ( Input == yes ->
 	    write('Who showed this card?'), read(Opponent),
-			retract(mayhold(Opponent,S)),
+			retractall(mayhold(Opponent,S)),
 			asserta(mayhold(Opponent,S)),
-			retract(mayhold(Opponent,W)),
+			retractall(mayhold(Opponent,W)),
 			asserta(mayhold(Opponent,W)),
-			retract(mayhold(Opponent,R)),
-			asserta(mayhold(Opponent,R))
+			retractall(mayhold(Opponent,R)),
+			asserta(mayhold(Opponent,R)),
+			oppTurnNoShow(S, W, R)
 	  ; Input == no ->
-			writeln('Oh no, your opponent won. Better luck next time!')
-	  ; write('Invalid input, try again.'),
+			writeln('Oh no, your opponent won. Better luck next time!'),
+			write('The answer is: '),
+			write(S), write(' with a '),
+			write(W), write(' in the '),
+			write(R), nl
+	  ; write('Invalid answer, try again.'),
 	    oppTurn
 	  )
-	; writeln('Invalid input, try again.'),
+	; writeln('Invalid card, try again.'),
 	  oppTurn
 	)
 .
+
+oppTurnNoShow(S, W, R):-
+	playercount(PCount),
+	MAX is PCount-1,
+	nl,
+	writeln('How many players no counting yourself didn\'t have a card to show?'),
+	write('valid inputs [0-'), write(MAX), write(']: '),
+	read(Number),
+	(	Number == 0 ->
+		write('Nothing learned from this')
+	;	(Number =< MAX, Number > 0 )->
+		oppTurnNoShowLoop(S, W, R, Number)
+	;	writeln('Number of players out of range, try again!'),
+	oppTurnNoShow(S, W, R)
+	)
+.
+
+oppTurnNoShowLoop(S, W, R, 0):- writeln('Done with this opponents turn').
+oppTurnNoShowLoop(S, W, R, X):-
+	nl,
+	write('Name a player that had no cards to show'),
+	read(Name),
+	( player(Name) ->
+		does_not_have(Name, S, W, R),
+		write('crossed out '),
+		write(S), write(', '),
+		write(W), write(' and '),
+		write(R), write(' '),
+		write(' from '),
+		write(Name),
+		write('\'s columb'),
+		nl
+	;	writeln('no such player, try again!'),
+		oppTurnNoShowLoop(S, W, R, X)
+	),
+	Y is X-1,
+	oppTurnNoShowLoop(S, W, R, Y)
+.
+
+
 
 /* Utility */
 :- dynamic room/1.
